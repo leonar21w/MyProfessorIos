@@ -43,12 +43,30 @@ struct ResultsView: View {
 			}
 		}.onAppear {
 			Task {
-				professorData = try await getProfessors.getProfessorData(
-					departmentCode: departmentCode, courseCode: courseCode, termCode: termCode)
-				showLoading.toggle()
-				try await dataVM.searchProfessorAndGetRatings(professors: professorData, departmentCode: departmentCode, courseCode: courseCode, termCode: termCode)
-			}
-		}
+	   do {
+		   let fetchedData = try await getProfessors.getProfessorData(
+			   departmentCode: departmentCode,
+			   courseCode: courseCode,
+			   termCode: termCode
+		   )
+
+		   await MainActor.run {
+			   professorData = fetchedData
+			   showLoading.toggle()
+		   }
+
+		   try await dataVM.searchProfessorAndGetRatings(
+			   professors: fetchedData,
+			   departmentCode: departmentCode,
+			   courseCode: courseCode,
+			   termCode: termCode
+		   )
+	   } catch {
+		   print("Error occurred: \(error)")
+	   }
+   }
+}
+
 	}
 	
 	private var ListProfessors: some View {
@@ -132,7 +150,7 @@ struct ResultsView: View {
 	
 	private var classDetails: some View {
 		VStack(spacing: 0) {
-			Text("\(departmentCode)")
+			Text("\(departmentCode) \(courseCode)")
 				.foregroundStyle(Color.black)
 			Text(termCode)
 				.foregroundStyle(Color.gray.opacity(0.5))
